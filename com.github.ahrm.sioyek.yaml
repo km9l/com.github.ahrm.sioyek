@@ -59,20 +59,21 @@ modules:
 
 cleanup:
   - /share/man
+  - /share/runtime/docs
   - /include # Reduces app size considerably (thx Aman9das)
   - /lib/pkgconfig
   - /share/aclocal
   - '*.la'
   - '*.a'
-  - /app/lib/*.prl
-  - /app/bin/q*
-  - /app/bin/andr*
-  - /app/doc/
-  - /app/lib/cmake
-  - /app/lib/debug
-  - /app/lib/libexec
-  - /app/lib/metadata
-  - /app/lib/modules
-  - /app/lib/objects-Release
-  - /app/lib/sbom
-  - /app/mkspecs
+  - '*.prl'
+  - /bin/a*
+  - /bin/q*
+  - /doc
+  - /lib/cmake
+  - /lib/libexec
+  - /lib/metadata
+  - /lib/modules
+  - /lib/objects-Release
+  - /lib/sbom
+  - /lib/systemd
+  - /mkspecs

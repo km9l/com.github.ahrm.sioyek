@@ -1,23 +1,5 @@
 name: qtwayland
 buildsystem: cmake-ninja
-cleanup:
-  - /bin
-  - /man
-  - /share/man
-  - /lib/systemd
-  - '*.la'
-  - /share/runtime/docs
-  - /include
-  - /share/aclocal
-  - /share/pkgconfig
-  - /lib/pkgconfig
-  - /lib/*/pkgconfig
-  - '*.a'
-  - '*.cmake'
-  - /lib/*/cmake
-  - /mkspecs
-  - /lib/mkspecs
-  - '*.prl'
 sources:
   - type: archive
     url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtwayland-everywhere-src-6.8.2.tar.xz
