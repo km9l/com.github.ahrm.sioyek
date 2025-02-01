@@ -24,6 +24,16 @@ finish-args:
 
 modules:
   - qt6-8.yaml
+  - name: qadwaitadecorations
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_INSTALL_PREFIX=/app/lib/plugins/QAdwaitaDecorations
+      - -DQT_PLUGINS_DIR=/app/lib/plugins/QAdwaitaDecorations
+      - -DUSE_QT6=ON
+    sources:
+      - type: git
+        url: https://github.com/FedoraQt/QAdwaitaDecorations.git
+        tag: 0.1.6
   - "shared-modules/glu/glu-9.json"
   - name: sioyek
     buildsystem: simple

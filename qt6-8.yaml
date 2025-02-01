@@ -82,13 +82,3 @@ modules:
           versions:
             <: 6.9.0
           url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qtsvg-everywhere-src-$version.tar.xz
-  - name: qadwaitadecorations
-    buildsystem: cmake-ninja
-    config-opts:
-      - -DCMAKE_INSTALL_PREFIX=/app/lib/plugins/QAdwaitaDecorations
-      - -DQT_PLUGINS_DIR=/app/lib/plugins/QAdwaitaDecorations
-      - -DUSE_QT6=ON
-    sources:
-      - type: git
-        url: https://github.com/FedoraQt/QAdwaitaDecorations.git
-        tag: 0.1.6
