@@ -20,8 +20,8 @@ cleanup:
   - '*.prl'
 sources:
   - type: archive
-    url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtwayland-everywhere-src-6.8.1.tar.xz
-    sha256: 2226fbde4e2ddd12f8bf4b239c8f38fd706a54e789e63467dfddc77129eca203
+    url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtwayland-everywhere-src-6.8.2.tar.xz
+    sha256: 5e46157908295f2bf924462d8c0855b0508ba338ced9e810891fefa295dc9647
     x-checker-data:
       type: anitya
       project-id: 7927
@@ -41,11 +41,13 @@ modules:
       - -DQT_DISABLE_RPATH=ON
       - -DBUILD_WITH_PCH=FALSE
       - -DQT_FEATURE_openssl_linked=ON
-      - -DQT_FEATURE_system_sqlite=ON
+      - -DQT_FEATURE_sql=OFF
+      - -DQT_FEATURE_printsupport=OFF
+      - -DQT_FEATURE_testlib=OFF
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtbase-everywhere-src-6.8.1.tar.xz
-        sha256: 40b14562ef3bd779bc0e0418ea2ae08fa28235f8ea6e8c0cb3bce1d6ad58dcaf
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtbase-everywhere-src-6.8.2.tar.xz
+        sha256: 012043ce6d411e6e8a91fdc4e05e6bedcfa10fcb1347d3c33908f7fdd10dfe05
         x-checker-data:
           type: anitya
           project-id: 7927
@@ -59,19 +61,14 @@ modules:
   - name: qt6-qt3d
     buildsystem: cmake-ninja
     config-opts:
-      - -qt3d-render
-      - no
-      - -qt3d-logic
-      - no
-      - -qt3d-extras
-      - no
-      - -qt3d-animation
-      - no
-      - --
+      - -DQT_FEATURE_qt3d_logic=OFF
+      - -DQT_FEATURE_qt3d_render=OFF
+      - -DQT_FEATURE_qt3d_extras=OFF
+      - -DQT_FEATURE_qt3d_animation=OFF
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qt3d-everywhere-src-6.8.1.tar.xz
-        sha256: 08b006871b7bad92597c6b588ca921f630131e579e25079e49c0b34c0d7c4236
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qt3d-everywhere-src-6.8.2.tar.xz
+        sha256: 577a6352f091a8d5fd087a0ac948befb185583959ee4048009073f0b377b8c44
         x-checker-data:
           type: anitya
           project-id: 7927
@@ -83,8 +80,8 @@ modules:
     buildsystem: cmake-ninja
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtsvg-everywhere-src-6.8.1.tar.xz
-        sha256: 3d0de73596e36b2daa7c48d77c4426bb091752856912fba720215f756c560dd0
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtsvg-everywhere-src-6.8.2.tar.xz
+        sha256: aa2579f21ca66d19cbcf31d87e9067e07932635d36869c8239d4decd0a9dc1fa
         x-checker-data:
           type: anitya
           project-id: 7927
