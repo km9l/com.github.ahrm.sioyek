@@ -76,6 +76,9 @@ modules:
           versions:
             <: 6.9.0
           url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qt3d-everywhere-src-$version.tar.xz
+      - type: patch
+        paths:
+          - patch/qt3d-dont-build-plugins-that-rely-on-render.patch
   - name: qt6-qtsvg
     buildsystem: cmake-ninja
     sources:
