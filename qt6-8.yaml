@@ -69,6 +69,19 @@ modules:
           versions:
             <: 6.9.0
           url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qt3d-everywhere-src-$version.tar.xz
+  - name: qt6-qtsvg
+    buildsystem: cmake-ninja
+    sources:
+      - type: archive
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtsvg-everywhere-src-6.8.1.tar.xz
+        sha256: 3d0de73596e36b2daa7c48d77c4426bb091752856912fba720215f756c560dd0
+        x-checker-data:
+          type: anitya
+          project-id: 7927
+          stable-only: true
+          versions:
+            <: 6.9.0
+          url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qtsvg-everywhere-src-$version.tar.xz
   - name: qadwaitadecorations
     buildsystem: cmake-ninja
     config-opts:
