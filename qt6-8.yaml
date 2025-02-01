@@ -1,0 +1,68 @@
+name: qtwayland
+buildsystem: cmake-ninja
+cleanup:
+  - /bin
+  - /man
+  - /share/man
+  - /lib/systemd
+  - '*.la'
+  - /share/runtime/docs
+  - /include
+  - /share/aclocal
+  - /share/pkgconfig
+  - /lib/pkgconfig
+  - /lib/*/pkgconfig
+  - '*.a'
+  - '*.cmake'
+  - /lib/*/cmake
+  - /mkspecs
+  - /lib/mkspecs
+  - '*.prl'
+sources:
+  - type: archive
+    url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtwayland-everywhere-src-6.8.1.tar.xz
+    sha256: 2226fbde4e2ddd12f8bf4b239c8f38fd706a54e789e63467dfddc77129eca203
+    x-checker-data:
+      type: anitya
+      project-id: 7927
+      stable-only: true
+      versions:
+        <: 6.9.0
+      url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qtwayland-everywhere-src-$version.tar.xz
+modules:
+  - name: qt6-qtbase
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DINSTALL_LIBDIR=/app/lib/
+      - -DINSTALL_ARCHDATADIR=lib
+      - -DQT_DISABLE_RPATH=ON
+      - -DBUILD_WITH_PCH=FALSE
+      - -DQT_FEATURE_openssl_linked=ON
+      - -DQT_FEATURE_system_sqlite=ON
+    sources:
+      - type: archive
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qtbase-everywhere-src-6.8.1.tar.xz
+        sha256: 40b14562ef3bd779bc0e0418ea2ae08fa28235f8ea6e8c0cb3bce1d6ad58dcaf
+        x-checker-data:
+          type: anitya
+          project-id: 7927
+          stable-only: true
+          versions:
+            <: 6.9.0
+          url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qtbase-everywhere-src-$version.tar.xz
+      - type: patch
+        paths:
+          - patch/qtbase-find_package-paths.patch
+  - name: qt6-qt3d
+    buildsystem: cmake-ninja
+    sources:
+      - type: archive
+        url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qt3d-everywhere-src-6.8.1.tar.xz
+        sha256: 08b006871b7bad92597c6b588ca921f630131e579e25079e49c0b34c0d7c4236
+        x-checker-data:
+          type: anitya
+          project-id: 7927
+          stable-only: true
+          versions:
+            <: 6.9.0
+          url-template: https://download.qt.io/official_releases/qt/6.8/$version/submodules/qt3d-everywhere-src-$version.tar.xz

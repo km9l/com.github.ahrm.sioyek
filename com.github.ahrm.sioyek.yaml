@@ -1,9 +1,9 @@
 ---
 app-id: com.github.ahrm.sioyek
 
-runtime: org.kde.Platform
-runtime-version: '6.7'
-sdk: org.kde.Sdk
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
 
 command: sioyek
 
@@ -21,6 +21,7 @@ finish-args:
   - --device=dri
 
 modules:
+  - qt6-8.yaml
   - "shared-modules/glu/glu-9.json"
   - name: sioyek
     buildsystem: simple
