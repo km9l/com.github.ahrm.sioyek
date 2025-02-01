@@ -58,6 +58,16 @@ modules:
           - patch/qtbase-find_package-paths.patch
   - name: qt6-qt3d
     buildsystem: cmake-ninja
+    config-opts:
+      - -qt3d-render
+      - no
+      - -qt3d-logic
+      - no
+      - -qt3d-extras
+      - no
+      - -qt3d-animation
+      - no
+      - --
     sources:
       - type: archive
         url: https://download.qt.io/official_releases/qt/6.8/6.8.1/submodules/qt3d-everywhere-src-6.8.1.tar.xz
