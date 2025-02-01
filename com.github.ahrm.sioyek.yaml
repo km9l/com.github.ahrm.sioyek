@@ -14,6 +14,8 @@ finish-args:
   - --filesystem=/run/media
   - --filesystem=/media
   - --filesystem=/tmp
+  # to access ~/.config/sioyek/prefs_user.config
+  - --filesystem=~/.config/sioyek
   - --share=ipc
   - --socket=wayland
   - --socket=fallback-x11
@@ -48,3 +50,7 @@ modules:
 cleanup:
   - /share/man
   - /include # Reduces app size considerably (thx Aman9das)
+  - /lib/pkgconfig
+  - /share/aclocal
+  - '*.la'
+  - '*.a'
