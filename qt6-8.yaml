@@ -20,12 +20,17 @@ modules:
     config-opts:
       - -DINSTALL_LIBDIR=/app/lib/
       - -DINSTALL_ARCHDATADIR=lib
-      - -DQT_DISABLE_RPATH=ON
-      - -DBUILD_WITH_PCH=FALSE
-      - -DQT_FEATURE_openssl_linked=ON
-      - -DQT_FEATURE_sql=OFF
-      - -DQT_FEATURE_printsupport=OFF
-      - -DQT_FEATURE_testlib=OFF
+      - -DBUILD_SHARED_LIBS=OFF
+      - -DFEATURE_rpath=OFF
+      - -DFEATURE_precompile_header=OFF
+      - -DFEATURE_openssl_linked=ON
+      - -DFEATURE_sql=OFF
+      - -DFEATURE_printsupport=OFF
+      - -DFEATURE_testlib=OFF
+      - -DFEATURE_eglfs=OFF
+      - -DFEATURE_linuxfb=OFF
+      - -DFEATURE_vnc=OFF
+      - -DFEATURE_vkkhrdisplay=OFF
     sources:
       - type: archive
         url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtbase-everywhere-src-6.8.2.tar.xz
@@ -40,6 +45,9 @@ modules:
       - type: patch
         paths:
           - patch/qtbase-find_package-paths.patch
+      - type: patch
+        paths:
+          - patch/qtbase-fix-static-build.patch
   - name: qt6-qtsvg
     buildsystem: cmake-ninja
     sources:
