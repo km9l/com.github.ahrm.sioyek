@@ -18,9 +18,9 @@ modules:
   - name: qt6-qtbase
     buildsystem: cmake-ninja
     config-opts:
-      - -DINSTALL_LIBDIR=/app/lib/
       - -DINSTALL_ARCHDATADIR=lib
       - -DBUILD_SHARED_LIBS=OFF
+      - -DFEATURE_relocatable=OFF
       - -DFEATURE_rpath=OFF
       - -DFEATURE_precompile_header=OFF
       - -DFEATURE_openssl_linked=ON
