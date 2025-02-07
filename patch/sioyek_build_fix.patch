@@ -5,7 +5,7 @@
            
 
 -QT += core opengl gui widgets network 3dinput 
-+QT += core opengl gui widgets network 
++QT += core opengl gui widgets network waylandclient
 
  greaterThan(QT_MAJOR_VERSION, 5){
         QT += openglwidgets
