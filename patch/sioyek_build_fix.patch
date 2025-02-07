@@ -82,3 +82,14 @@
  #include <qlineedit.h>
  #include <qtreeview.h>
  #include <qsortfilterproxymodel.h>
+--- a/build_linux.sh
++++ b/build_linux.sh
+@@ -3,7 +3,7 @@
+ 
+ # Compile mupdf
+ cd mupdf
+-make USE_SYSTEM_HARFBUZZ=yes
++make USE_SYSTEM_LIBS=yes
+ cd ..
+ 
+ # Compile sioyek
