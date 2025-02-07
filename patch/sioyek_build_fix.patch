@@ -1,26 +1,36 @@
---- a/pdf_viewer_build_config.pro	2022-02-18 07:47:57.000000000 -0400
-+++ b/pdf_viewer_build_config.pro	2022-03-07 17:50:49.489579924 -0400
-@@ -6,7 +6,7 @@
+--- a/pdf_viewer_build_config.pro
++++ b/pdf_viewer_build_config.pro
+@@ -6,7 +6,8 @@
                zlib
            
-
+ 
 -QT += core opengl gui widgets network 3dinput 
-+QT += core opengl gui widgets network waylandclient
-
++QT += core opengl gui widgets network waylandclient-private
++QTPLUGIN += qwayland-generic qwayland-egl qwayland-brcm-egl
+ 
  greaterThan(QT_MAJOR_VERSION, 5){
-        QT += openglwidgets
-@@ -17,7 +17,7 @@
+ 	QT += openglwidgets
+@@ -17,7 +18,7 @@
  }
-
+ 
  CONFIG += c++17
 -DEFINES += QT_3DINPUT_LIB QT_OPENGL_LIB QT_OPENGLEXTENSIONS_LIB QT_WIDGETS_LIB
 +DEFINES += QT_OPENGL_LIB QT_OPENGLEXTENSIONS_LIB QT_WIDGETS_LIB
-
+ 
  CONFIG(non_portable){
      DEFINES += NON_PORTABLE
-@@ -96,7 +96,7 @@
+@@ -88,7 +89,7 @@
+     QMAKE_CXXFLAGS += -std=c++17
+ 
+     CONFIG(linux_app_image){
+-        LIBS += -ldl -Lmupdf/build/release -lmupdf -lmupdf-third -lmupdf-threads -lharfbuzz -lz
++        LIBS += -ldl -Lmupdf/build/release -lmupdf -lmupdf-third -lmupdf-threads -lharfbuzz -lz -lfreetype -lopenjp2 -ljpeg
+     } else {
+         DEFINES += NON_PORTABLE
+         DEFINES += LINUX_STANDARD_PATHS
+@@ -96,7 +97,7 @@
      }
-
+ 
      isEmpty(PREFIX){
 -        PREFIX = /usr
 +        PREFIX = /app
@@ -89,7 +99,7 @@
  # Compile mupdf
  cd mupdf
 -make USE_SYSTEM_HARFBUZZ=yes
-+make USE_SYSTEM_LIBS=yes
++make USE_SYSTEM_HARFBUZZ=yes USE_SYSTEM_FREETYPE=yes USE_SYSTEM_OPENJPEG=yes USE_SYSTEM_ZLIB=yes USE_SYSTEM_LIBJPEG=yes
  cd ..
  
  # Compile sioyek
