@@ -1,5 +1,7 @@
 name: qtwayland
 buildsystem: cmake-ninja
+config-opts:
+  - -DFEATURE_wayland_server=OFF
 sources:
   - type: archive
     url: https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtwayland-everywhere-src-6.8.2.tar.xz
