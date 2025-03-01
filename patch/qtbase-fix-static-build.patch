@@ -1,4 +1,41 @@
-From 9558e24f03a7e34118b4eab823c0fe059d681ced Mon Sep 17 00:00:00 2001
+From b71647d06970b2cc3b63b93c020eca8caf0a519f Mon Sep 17 00:00:00 2001
+From: Cristian Le <cristian.le@qt.io>
+Date: Tue, 21 Jan 2025 17:07:16 +0100
+Subject: [PATCH] Check for misspelled `FEATURE_*` variable
+
+The feature names are normalized using `qt_feature_normalize_name`, but
+a user might read `qt_feature` usage and not realize that they should
+normalize the name in the `FEATURE_*` variable.
+
+This change emits an error if it detects such invalid names.
+
+Fixes: QTBUG-132464
+Pick-to: 6.8 6.9
+Change-Id: I33c7ab9f589c92e11e16d376660e8b6152339d12
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
+---
+
+diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
+index 453f3d72116..42496f94712 100644
+--- a/cmake/QtFeature.cmake
++++ b/cmake/QtFeature.cmake
+@@ -353,6 +353,15 @@ function(qt_feature_check_and_save_user_provided_value
+         set("FEATURE_${feature}" "${result}" CACHE BOOL "${label}")
+     endif()
+ 
++    # Check for potential typo
++    get_property(original_name GLOBAL PROPERTY "QT_FEATURE_ORIGINAL_NAME_${feature}")
++    if(NOT original_name STREQUAL feature AND DEFINED "FEATURE_${original_name}")
++        unset("FEATURE_${original_name}" CACHE)
++        qt_configure_add_report_error(
++            "FEATURE_${original_name} does not exist. Consider using: FEATURE_${feature}"
++        )
++    endif()
++
+     set("${resultVar}" "${result}" PARENT_SCOPE)
+ endfunction()
+ 
+From 4bbd324a0a4a488b9ff4272888cc6b7f516d78ff Mon Sep 17 00:00:00 2001
 From: Cristian Le <cristian.le@qt.io>
 Date: Tue, 04 Feb 2025 11:54:41 +0100
 Subject: [PATCH] Add `qt_feature_alias`
@@ -10,13 +47,14 @@ one-to-one equivalence with the original target.
 - Multiple aliases of a feature cannot be set at the same time
 
 Change-Id: I5b17ec3af51761880a7edb0c47ad8144815f1f93
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
 ---
 
 diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
-index 42496f9..1b7c1f4 100644
+index 42496f9..5b915fb 100644
 --- a/cmake/QtFeature.cmake
 +++ b/cmake/QtFeature.cmake
-@@ -115,6 +115,66 @@
+@@ -115,6 +115,69 @@
      set(__QtFeature_internal_features ${__QtFeature_internal_features} PARENT_SCOPE)
  endfunction()
  
@@ -62,10 +100,14 @@ index 42496f9..1b7c1f4 100644
 +    qt_feature_normalize_name("${alias_feature}" alias_feature)
 +    set_property(GLOBAL PROPERTY QT_FEATURE_ORIGINAL_NAME_${alias_feature} "${original_name}")
 +    qt_feature_normalize_name("${arg_ALIAS_OF}" arg_ALIAS_OF)
++    if(NOT DEFINED _QT_FEATURE_DEFINITION_${arg_ALIAS_OF})
++        message(FATAL_ERROR "Primary feature ${arg_ALIAS_OF} was not defined yet.")
++    endif()
 +
 +    list(APPEND _QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${alias_feature}")
 +
 +    set(forward_args "")
++    list(APPEND forward_args ALIAS_OF "${arg_ALIAS_OF}")
 +
 +    set(_QT_FEATURE_DEFINITION_${alias_feature} ${forward_args} PARENT_SCOPE)
 +    set(_QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${_QT_FEATURE_ALIASES_${arg_ALIAS_OF}}" PARENT_SCOPE)
@@ -75,7 +117,6 @@ index 42496f9..1b7c1f4 100644
 +        if(arg_ALIAS_OF IN_LIST __QtFeature_${type}_features)
 +            list(APPEND __QtFeature_${type}_features "${alias_feature}")
 +            set(__QtFeature_${type}_features ${__QtFeature_${type}_features} PARENT_SCOPE)
-+            break()
 +        endif()
 +    endforeach()
 +endfunction()
@@ -83,51 +124,107 @@ index 42496f9..1b7c1f4 100644
  function(qt_evaluate_to_boolean expressionVar)
      if(${${expressionVar}})
          set(${expressionVar} ON PARENT_SCOPE)
-@@ -292,6 +352,43 @@
+@@ -292,6 +355,99 @@
      set(${expression_dump} "${${expression_dump}}" PARENT_SCOPE)
  endfunction()
  
++# Check the actual value of a given feature/alias.
++# The value can come from `FEATURE_<alias>` being set or from another alias.
++# The out_var is sanitized to 0/1 and it is not set if the feature was not defined.
++function(_qt_feature_evaluate_alias out_var alias)
++    # Evaluate the alias against the aliases of the alias
++    _qt_feature_check_feature_alias(${alias})
++    if(NOT DEFINED FEATURE_${alias})
++        # If the alias was not defined, don't set value
++        return()
++    endif()
++    # Evaluate the value and return it
++    qt_set01(${out_var} FEATURE_${alias})
++    set(${out_var} "${${out_var}}" PARENT_SCOPE)
++endfunction()
++
++# Check that the feature value is consistent with any of its aliases.
++# If the feature was not set via `FEATURE_<feature>`, it may be set by the aliases.
 +function(_qt_feature_check_feature_alias feature)
 +    if(DEFINED "FEATURE_${feature}")
 +        # The main feature was already defined, use the current value.
-+        # Just check if any other ALIAS was defined and emit a warning
++        # Just check if the other aliases have agreeing values.
++        qt_set01(expected_value FEATURE_${feature})
++        unset(alias_value)
 +        foreach(alias IN LISTS _QT_FEATURE_ALIASES_${feature})
-+            if(DEFINED "FEATURE_${alias}")
-+                string(CONCAT msg
-+                    "FEATURE_${alias} is an alias of FEATURE_${feature}, and the latter was"
-+                    " already set. You may only use one of these features."
-+                )
-+                qt_configure_add_report_error(${msg})
++            _qt_feature_evaluate_alias(alias_value ${alias})
++            if(DEFINED alias_value)
++                if(NOT expected_value EQUAL alias_value)
++                    string(CONCAT msg
++                        "Alias FEATURE_${alias}(${FEATURE_${alias}}) is an alias of "
++                        "FEATURE_${feature}(${FEATURE_${alias}}), and their values conflict"
++                    )
++                    qt_configure_add_report_error(${msg})
++                endif()
++                unset(alias_value)
 +            endif()
 +        endforeach()
-+    else()
-+        set(alias "")
-+        foreach(check_alias IN LISTS _QT_FEATURE_ALIASES_${feature})
-+            if(DEFINED "FEATURE_${check_alias}")
-+                list(APPEND alias ${check_alias})
-+            endif()
-+        endforeach()
-+        list(LENGTH alias alias_number)
-+        if(alias_number GREATER 1)
-+            # We can only deal with one alias being set
-+            string(CONCAT msg
-+                "Multiple aliases of FEATURE_${feature} were defined, we don't know which to"
-+                " respect. Aliases: ${alias}"
-+            )
-+            qt_configure_add_report_error(${msg})
-+        elseif(alias_number EQUAL 1)
-+            # A unique alias is provided, use this value for the main feature
-+            _qt_internal_parse_feature_definition("${alias}")
-+            # Copy the value as-is
-+            set("FEATURE_${feature}" "${FEATURE_${alias}}" PARENT_SCOPE)
-+        endif()
++        return()
 +    endif()
++    # Otherwise try to set the `feature` value from the aliases
++    set(aliases_set "")
++    set(expected_value "")
++    unset(value)
++    foreach(alias IN LISTS _QT_FEATURE_ALIASES_${feature})
++        _qt_feature_evaluate_alias(value ${alias})
++        if(DEFINED value)
++            list(APPEND aliases_set "${alias}")
++            list(APPEND expected_value "${value}")
++            unset(value)
++        endif()
++    endforeach()
++    # If there were no aliases set, do not set the feature either
++    if(NOT aliases_set)
++        return()
++    endif()
++    # Check if all values are consistent
++    list(TRANSFORM REMOVE_DUPLICATES expected_value)
++    list(LENGTH expected_value expected_value_length)
++    if(expected_value_length GREATER 1)
++        string(CONCAT msg
++            "Multiple aliases of FEATURE_${feature} were defined, with conflicting values.\n"
++            "Aliases:"
++        )
++        while(aliases_set)
++            list(POP_FRONT aliases_set alias)
++            string(CONCAT msg
++                "${msg}\n"
++                "  - FEATURE_${alias}(${FEATURE_${alias}})"
++            )
++        endwhile()
++        qt_configure_add_report_error(${msg})
++        return()
++    endif()
++    # All aliased values are agreeing
++    set("FEATURE_${feature}" ${expected_value} PARENT_SCOPE)
++endfunction()
++
++# Make sure all the direct alias values are set after the final evaluation of the feature value.
++# Must be run after `_qt_feature_check_feature_alias` which checks for user-defined values and
++# any inconsistencies
++function(_qt_feature_save_alias feature)
++    foreach(alias IN LISTS _QT_FEATURE_ALIASES_${feature})
++        # We only need to set the alias values if they were not explicitly set. The consistency
++        # check for those was done prior to this function call.
++        if(NOT DEFINED FEATURE_${alias})
++            # Set the values based on the main feature's value
++            set(FEATURE_${alias} ${FEATURE_${feature}} CACHE BOOL
++                # Using a temporary docstring that should be overwritten if everything works well
++                "(temporarily set by _qt_feature_save_alias)"
++            )
++        endif()
++    endforeach()
 +endfunction()
 +
  # Stores the user provided value to FEATURE_${feature} if provided.
  # If not provided, stores ${computed} instead.
  # ${computed} is also stored when reconfiguring and the condition does not align with the user
-@@ -299,6 +396,7 @@
+@@ -299,6 +455,7 @@
  #
  function(qt_feature_check_and_save_user_provided_value
          resultVar feature condition condition_expression computed label)
@@ -135,7 +232,83 @@ index 42496f9..1b7c1f4 100644
      if (DEFINED "FEATURE_${feature}")
          # Revisit new user provided value
          set(user_value "${FEATURE_${feature}}")
-@@ -810,6 +908,7 @@
+@@ -351,6 +508,10 @@
+         # Initial setup:
+         set(result "${computed}")
+         set("FEATURE_${feature}" "${result}" CACHE BOOL "${label}")
++        # Update the HELPSTRING if needed
++        set_property(CACHE "FEATURE_${feature}" PROPERTY
++            HELPSTRING "${label}"
++        )
+     endif()
+ 
+     # Check for potential typo
+@@ -362,6 +523,9 @@
+         )
+     endif()
+ 
++    # Set the values of each direct alias
++    _qt_feature_save_alias("${feature}")
++
+     set("${resultVar}" "${result}" PARENT_SCOPE)
+ endfunction()
+ 
+@@ -394,7 +558,7 @@
+ macro(_qt_internal_parse_feature_definition feature)
+     cmake_parse_arguments(arg
+         "PRIVATE;PUBLIC"
+-        "LABEL;PURPOSE;SECTION;"
++        "LABEL;PURPOSE;SECTION;ALIAS_OF"
+         "AUTODETECT;CONDITION;ENABLE;DISABLE;EMIT_IF"
+         ${_QT_FEATURE_DEFINITION_${feature}})
+ endmacro()
+@@ -436,6 +600,12 @@
+ 
+     _qt_internal_parse_feature_definition("${feature}")
+ 
++    if(arg_ALIAS_OF)
++        # If the current feature is an alias of another, we have to check the original source first
++        # in order to be consistent with the original source if set
++        qt_evaluate_feature("${arg_ALIAS_OF}")
++    endif()
++
+     if("${arg_ENABLE}" STREQUAL "")
+         set(arg_ENABLE OFF)
+     endif()
+@@ -474,6 +644,11 @@
+         qt_evaluate_config_expression(emit_if ${arg_EMIT_IF})
+     endif()
+ 
++    set(actual_label "${arg_LABEL}")
++    if(arg_ALIAS_OF)
++        string(APPEND actual_label " (alias of ${arg_ALIAS_OF})")
++    endif()
++
+     # Warn about a feature which is not emitted, but the user explicitly provided a value for it.
+     if(NOT emit_if AND DEFINED FEATURE_${feature})
+         set(msg "")
+@@ -491,17 +666,17 @@
+     if(emit_if)
+         qt_feature_check_and_save_user_provided_value(
+             saved_user_value
+-            "${feature}" "${condition}" "${arg_CONDITION}" "${computed}" "${arg_LABEL}")
++            "${feature}" "${condition}" "${arg_CONDITION}" "${computed}" "${actual_label}")
+     else()
+         # Make sure the feature internal value is OFF if not emitted.
+         set(saved_user_value OFF)
+     endif()
+ 
+     qt_feature_check_and_save_internal_value(
+-        "${feature}" "${saved_user_value}" "${condition}" "${arg_LABEL}" "${arg_CONDITION}")
++        "${feature}" "${saved_user_value}" "${condition}" "${actual_label}" "${arg_CONDITION}")
+ 
+     # Store each feature's label for summary info.
+-    set(QT_FEATURE_LABEL_${feature} "${arg_LABEL}" CACHE INTERNAL "")
++    set(QT_FEATURE_LABEL_${feature} "${actual_label}" CACHE INTERNAL "")
+ endfunction()
+ 
+ # Collect feature names that ${feature} depends on, by inspecting the given expression.
+@@ -810,6 +985,7 @@
  
      foreach(feature ${all_features})
          unset(_QT_FEATURE_DEFINITION_${feature} PARENT_SCOPE)
@@ -144,7 +317,7 @@ index 42496f9..1b7c1f4 100644
  
      if(NOT arg_ONLY_EVALUATE_FEATURES)
 diff --git a/cmake/QtProcessConfigureArgs.cmake b/cmake/QtProcessConfigureArgs.cmake
-index b6736c4..77d9573 100644
+index 6800415..c0a4e55 100644
 --- a/cmake/QtProcessConfigureArgs.cmake
 +++ b/cmake/QtProcessConfigureArgs.cmake
 @@ -230,6 +230,11 @@
@@ -159,16 +332,17 @@ index b6736c4..77d9573 100644
  function(find_package)
      message(FATAL_ERROR "find_package must not be used directly in configure.cmake. "
          "Use qt_find_package or guard the call with an if(NOT QT_CONFIGURE_RUNNING) block.")
-From c7a07ca47a4a7664f47ee56ab3c0a3008b08c485 Mon Sep 17 00:00:00 2001
+From 6a93429fc074e56ffbcabf479d7295df6426dbdf Mon Sep 17 00:00:00 2001
 From: Cristian Le <cristian.le@qt.io>
 Date: Tue, 04 Feb 2025 16:43:10 +0100
 Subject: [PATCH] Add `NEGATE` to `qt_feature_alias`
 
 Change-Id: I9e10618a3bc76d285d7bd59ebbf5bc5e56de62d0
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
 ---
 
 diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
-index 1b7c1f4..47ff6c4 100644
+index 5b915fb..5117765 100644
 --- a/cmake/QtFeature.cmake
 +++ b/cmake/QtFeature.cmake
 @@ -132,6 +132,7 @@
@@ -194,149 +368,122 @@ index 1b7c1f4..47ff6c4 100644
      set(single_args ALIAS_OF)
      set(multi_args "")
  
-@@ -161,6 +167,9 @@
-     list(APPEND _QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${alias_feature}")
+@@ -165,6 +171,9 @@
  
      set(forward_args "")
+     list(APPEND forward_args ALIAS_OF "${arg_ALIAS_OF}")
 +    if(arg_NEGATE)
 +        list(APPEND forward_args ALIAS_NEGATE)
 +    endif()
  
      set(_QT_FEATURE_DEFINITION_${alias_feature} ${forward_args} PARENT_SCOPE)
      set(_QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${_QT_FEATURE_ALIASES_${arg_ALIAS_OF}}" PARENT_SCOPE)
-@@ -383,8 +392,17 @@
-         elseif(alias_number EQUAL 1)
-             # A unique alias is provided, use this value for the main feature
-             _qt_internal_parse_feature_definition("${alias}")
--            # Copy the value as-is
--            set("FEATURE_${feature}" "${FEATURE_${alias}}" PARENT_SCOPE)
-+            if(arg_ALIAS_NEGATE)
-+                # Negate the alias value and return it
-+                if(FEATURE_${alias})
-+                    set("FEATURE_${feature}" False PARENT_SCOPE)
-+                else()
-+                    set("FEATURE_${feature}" True PARENT_SCOPE)
-+                endif()
-+            else()
-+                # Copy the value as-is
-+                set("FEATURE_${feature}" "${FEATURE_${alias}}" PARENT_SCOPE)
-+            endif()
-         endif()
+@@ -365,9 +374,17 @@
+         # If the alias was not defined, don't set value
+         return()
      endif()
++    # Check if we need to negate the value to be set or not
++    set(not_kw)
++    _qt_internal_parse_feature_definition("${alias}")
++    if(arg_ALIAS_NEGATE)
++        set(not_kw "NOT")
++    endif()
+     # Evaluate the value and return it
+-    qt_set01(${out_var} FEATURE_${alias})
++    qt_set01(${out_var} ${not_kw} FEATURE_${alias})
+     set(${out_var} "${${out_var}}" PARENT_SCOPE)
++    # Also set `not_kw` since it would be reused by the caller
++    set(not_kw "${not_kw}" PARENT_SCOPE)
  endfunction()
-@@ -491,7 +509,7 @@
+ 
+ # Check that the feature value is consistent with any of its aliases.
+@@ -383,7 +400,7 @@
+             if(DEFINED alias_value)
+                 if(NOT expected_value EQUAL alias_value)
+                     string(CONCAT msg
+-                        "Alias FEATURE_${alias}(${FEATURE_${alias}}) is an alias of "
++                        "Alias FEATURE_${alias}(${FEATURE_${alias}}) is an alias of ${not_kw} "
+                         "FEATURE_${feature}(${FEATURE_${alias}}), and their values conflict"
+                     )
+                     qt_configure_add_report_error(${msg})
+@@ -396,12 +413,14 @@
+     # Otherwise try to set the `feature` value from the aliases
+     set(aliases_set "")
+     set(expected_value "")
++    set(alias_not_kws "")
+     unset(value)
+     foreach(alias IN LISTS _QT_FEATURE_ALIASES_${feature})
+         _qt_feature_evaluate_alias(value ${alias})
+         if(DEFINED value)
+             list(APPEND aliases_set "${alias}")
+             list(APPEND expected_value "${value}")
++            list(APPEND alias_not_kws "${not_kw}")
+             unset(value)
+         endif()
+     endforeach()
+@@ -419,9 +438,10 @@
+         )
+         while(aliases_set)
+             list(POP_FRONT aliases_set alias)
++            list(POP_FRONT alias_not_kws not_kw)
+             string(CONCAT msg
+                 "${msg}\n"
+-                "  - FEATURE_${alias}(${FEATURE_${alias}})"
++                "  - ${not_kw} FEATURE_${alias}(${FEATURE_${alias}})"
+             )
+         endwhile()
+         qt_configure_add_report_error(${msg})
+@@ -439,8 +459,16 @@
+         # We only need to set the alias values if they were not explicitly set. The consistency
+         # check for those was done prior to this function call.
+         if(NOT DEFINED FEATURE_${alias})
++            # Evaluate the alias value based on the original
++            set(not_kw)
++            _qt_internal_parse_feature_definition("${alias}")
++            if(arg_ALIAS_NEGATE)
++                set(not_kw "NOT")
++            endif()
++            qt_set01(value ${not_kw} FEATURE_${feature})
++            qt_evaluate_to_boolean(value)
+             # Set the values based on the main feature's value
+-            set(FEATURE_${alias} ${FEATURE_${feature}} CACHE BOOL
++            set(FEATURE_${alias} ${value} CACHE BOOL
+                 # Using a temporary docstring that should be overwritten if everything works well
+                 "(temporarily set by _qt_feature_save_alias)"
+             )
+@@ -557,7 +585,7 @@
  
  macro(_qt_internal_parse_feature_definition feature)
      cmake_parse_arguments(arg
 -        "PRIVATE;PUBLIC"
 +        "PRIVATE;PUBLIC;ALIAS_NEGATE"
-         "LABEL;PURPOSE;SECTION;"
+         "LABEL;PURPOSE;SECTION;ALIAS_OF"
          "AUTODETECT;CONDITION;ENABLE;DISABLE;EMIT_IF"
          ${_QT_FEATURE_DEFINITION_${feature}})
-From 3a9ada8914440a4e68c356d3405ef5817cdd8b03 Mon Sep 17 00:00:00 2001
-From: Cristian Le <cristian.le@qt.io>
-Date: Tue, 04 Feb 2025 16:48:12 +0100
-Subject: [PATCH] Add `SAVE` to `qt_feature_alias`
-
-Change-Id: Ia3e99a58b738eca8acb4ded57fce19620be94164
----
-
-diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
-index 47ff6c4..40c15af 100644
---- a/cmake/QtFeature.cmake
-+++ b/cmake/QtFeature.cmake
-@@ -132,7 +132,7 @@
- #
- #   qt_feature_alias(<alias_feature>
- #       ALIAS_OF <real_feature>
--#       [NEGATE]
-+#       [SAVE] [NEGATE]
- #   )
- #
- # Arguments
-@@ -143,10 +143,15 @@
- # `ALIAS_OF`
- #   The true canonical feature to consider.
- #
-+# `SAVE`
-+#   Populate the `QT_FEATURE_<ALIAS>` as well. If `NEGATE` is used, this value has the opposite
-+#   value of the main feature value.
-+#
- # `NEGATE`
- #   Populate the main FEATURE variable with the opposite of the alias's value
- function(qt_feature_alias alias_feature)
-     set(option_args
-+        SAVE
-         NEGATE
-     )
-     set(single_args ALIAS_OF)
-@@ -167,6 +172,9 @@
-     list(APPEND _QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${alias_feature}")
+@@ -646,7 +674,11 @@
  
-     set(forward_args "")
-+    if(arg_SAVE)
-+        list(APPEND forward_args ALIAS_SAVE)
-+    endif()
-     if(arg_NEGATE)
-         list(APPEND forward_args ALIAS_NEGATE)
-     endif()
-@@ -407,6 +415,29 @@
-     endif()
- endfunction()
- 
-+function(_qt_feature_set_feature_alias feature)
-+    foreach(alias IN LISTS _QT_FEATURE_ALIASES_${feature})
-+        _qt_internal_parse_feature_definition("${alias}")
-+        if(NOT arg_ALIAS_SAVE)
-+            # Skip aliases that do not need a `QT_FEATURE_*` variable
-+            continue()
-+        endif()
-+        set(doc_string "Alias of ${feature}")
+     set(actual_label "${arg_LABEL}")
+     if(arg_ALIAS_OF)
+-        string(APPEND actual_label " (alias of ${arg_ALIAS_OF})")
++        set(not_kw)
 +        if(arg_ALIAS_NEGATE)
-+            # Negate the feature value and save it
-+            set(doc_string "${doc_string} (inverted)")
-+            if(FEATURE_${feature})
-+                set(FEATURE_${alias} OFF)
-+            else()
-+                set(FEATURE_${alias} ON)
-+            endif()
-+        else()
-+            set(FEATURE_${alias} ${FEATURE_${feature}})
++            set(not_kw "NOT")
 +        endif()
-+        set("FEATURE_${alias}" "${FEATURE_${alias}}" CACHE BOOL "${doc_string}" FORCE)
-+    endforeach()
-+endfunction()
-+
- # Stores the user provided value to FEATURE_${feature} if provided.
- # If not provided, stores ${computed} instead.
- # ${computed} is also stored when reconfiguring and the condition does not align with the user
-@@ -477,6 +508,7 @@
-             "FEATURE_${original_name} does not exist. Consider using: FEATURE_${feature}"
-         )
++        string(APPEND actual_label " (alias of ${not_kw} ${arg_ALIAS_OF})")
      endif()
-+    _qt_feature_set_feature_alias(${feature})
  
-     set("${resultVar}" "${result}" PARENT_SCOPE)
- endfunction()
-@@ -509,7 +541,7 @@
- 
- macro(_qt_internal_parse_feature_definition feature)
-     cmake_parse_arguments(arg
--        "PRIVATE;PUBLIC;ALIAS_NEGATE"
-+        "PRIVATE;PUBLIC;ALIAS_SAVE;ALIAS_NEGATE"
-         "LABEL;PURPOSE;SECTION;"
-         "AUTODETECT;CONDITION;ENABLE;DISABLE;EMIT_IF"
-         ${_QT_FEATURE_DEFINITION_${feature}})
-From b8b92543ddc5f67cf47eb3c2edb8461a0f125096 Mon Sep 17 00:00:00 2001
+     # Warn about a feature which is not emitted, but the user explicitly provided a value for it.
+From beda9c82492a0818299c1623cadd5a1be53ae897 Mon Sep 17 00:00:00 2001
 From: Cristian Le <cristian.le@qt.io>
 Date: Tue, 04 Feb 2025 18:08:34 +0100
 Subject: [PATCH] Forward other `qt_feature` options in `qt_feature_alias`
 
 Change-Id: Ic0b7479e071fc17020a04ea48386054f0bbf3151
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
 ---
 
 diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
-index 40c15af..89f83ff 100644
+index 5117765..e370618 100644
 --- a/cmake/QtFeature.cmake
 +++ b/cmake/QtFeature.cmake
 @@ -126,12 +126,14 @@
@@ -352,10 +499,10 @@ index 40c15af..89f83ff 100644
 +#       [LABEL <string>]
 +#       [PURPOSE <string>]
 +#       [SECTION <string>]
- #       [SAVE] [NEGATE]
+ #       [NEGATE]
  #   )
  #
-@@ -149,12 +151,20 @@
+@@ -145,11 +147,19 @@
  #
  # `NEGATE`
  #   Populate the main FEATURE variable with the opposite of the alias's value
@@ -364,7 +511,6 @@ index 40c15af..89f83ff 100644
 +#   Same as in `qt_feature`
  function(qt_feature_alias alias_feature)
      set(option_args
-         SAVE
          NEGATE
      )
 -    set(single_args ALIAS_OF)
@@ -377,7 +523,7 @@ index 40c15af..89f83ff 100644
      set(multi_args "")
  
      cmake_parse_arguments(PARSE_ARGV 1 arg "${option_args}" "${single_args}" "${multi_args}")
-@@ -178,6 +188,15 @@
+@@ -174,6 +184,15 @@
      if(arg_NEGATE)
          list(APPEND forward_args ALIAS_NEGATE)
      endif()
@@ -393,16 +539,17 @@ index 40c15af..89f83ff 100644
  
      set(_QT_FEATURE_DEFINITION_${alias_feature} ${forward_args} PARENT_SCOPE)
      set(_QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${_QT_FEATURE_ALIASES_${arg_ALIAS_OF}}" PARENT_SCOPE)
-From dcec4a6d6dae9bc612a7c2c057204f24ddf4e44e Mon Sep 17 00:00:00 2001
+From a6140d84697e8076734ac2940bcb82555a16504b Mon Sep 17 00:00:00 2001
 From: Cristian Le <cristian.le@qt.io>
 Date: Tue, 04 Feb 2025 18:33:00 +0100
 Subject: [PATCH] Allow Feature to be alias of Cache variable
 
 Change-Id: I09b65cb038567a9f68a140e53a9e06eb15c8fc13
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
 ---
 
 diff --git a/cmake/QtFeature.cmake b/cmake/QtFeature.cmake
-index 89f83ff..9a73a05 100644
+index e370618..2be8de7 100644
 --- a/cmake/QtFeature.cmake
 +++ b/cmake/QtFeature.cmake
 @@ -130,7 +130,8 @@
@@ -415,7 +562,7 @@ index 89f83ff..9a73a05 100644
  #       [LABEL <string>]
  #       [PURPOSE <string>]
  #       [SECTION <string>]
-@@ -142,9 +143,12 @@
+@@ -142,20 +143,30 @@
  # `<alias_feature>`
  #   The feature alias to be created.
  #
@@ -426,10 +573,8 @@ index 89f83ff..9a73a05 100644
 +# `ALIAS_OF_CACHE`
 +#   The true cache variable that this value must synchronize with.
 +#
- # `SAVE`
- #   Populate the `QT_FEATURE_<ALIAS>` as well. If `NEGATE` is used, this value has the opposite
- #   value of the main feature value.
-@@ -154,13 +158,20 @@
+ # `NEGATE`
+ #   Populate the main FEATURE variable with the opposite of the alias's value
  #
  # `LABEL`, `PURPOSE`, `SECTION`
  #   Same as in `qt_feature`
@@ -439,7 +584,6 @@ index 89f83ff..9a73a05 100644
 +#   value of the the true feature is used.
  function(qt_feature_alias alias_feature)
      set(option_args
-         SAVE
          NEGATE
 +        PRIVATE
 +        PUBLIC
@@ -451,7 +595,7 @@ index 89f83ff..9a73a05 100644
          LABEL
          PURPOSE
          SECTION
-@@ -170,18 +181,26 @@
+@@ -165,22 +176,29 @@
      cmake_parse_arguments(PARSE_ARGV 1 arg "${option_args}" "${single_args}" "${multi_args}")
      _qt_internal_validate_all_args_are_parsed(arg)
  
@@ -468,22 +612,29 @@ index 89f83ff..9a73a05 100644
      qt_feature_normalize_name("${alias_feature}" alias_feature)
      set_property(GLOBAL PROPERTY QT_FEATURE_ORIGINAL_NAME_${alias_feature} "${original_name}")
 -    qt_feature_normalize_name("${arg_ALIAS_OF}" arg_ALIAS_OF)
+-    if(NOT DEFINED _QT_FEATURE_DEFINITION_${arg_ALIAS_OF})
+-        message(FATAL_ERROR "Primary feature ${arg_ALIAS_OF} was not defined yet.")
+-    endif()
 -
 -    list(APPEND _QT_FEATURE_ALIASES_${arg_ALIAS_OF} "${alias_feature}")
  
      set(forward_args "")
+-    list(APPEND forward_args ALIAS_OF "${arg_ALIAS_OF}")
 +    if(arg_ALIAS_OF_FEATURE)
 +        qt_feature_normalize_name("${arg_ALIAS_OF_FEATURE}" arg_ALIAS_OF_FEATURE)
++        if(NOT DEFINED _QT_FEATURE_DEFINITION_${arg_ALIAS_OF_FEATURE})
++            message(FATAL_ERROR "Primary feature ${arg_ALIAS_OF_FEATURE} was not defined yet.")
++        endif()
 +        list(APPEND _QT_FEATURE_ALIASES_${arg_ALIAS_OF_FEATURE} "${alias_feature}")
 +        list(APPEND forward_args ALIAS_OF_FEATURE "${arg_ALIAS_OF_FEATURE}")
 +    endif()
 +    if(arg_ALIAS_OF_CACHE)
 +        list(APPEND forward_args ALIAS_OF_CACHE "${arg_ALIAS_OF_CACHE}")
 +    endif()
-     if(arg_SAVE)
-         list(APPEND forward_args ALIAS_SAVE)
+     if(arg_NEGATE)
+         list(APPEND forward_args ALIAS_NEGATE)
      endif()
-@@ -199,16 +218,33 @@
+@@ -195,15 +213,34 @@
      endif()
  
      set(_QT_FEATURE_DEFINITION_${alias_feature} ${forward_args} PARENT_SCOPE)
@@ -494,17 +645,17 @@ index 89f83ff..9a73a05 100644
 -        if(arg_ALIAS_OF IN_LIST __QtFeature_${type}_features)
 -            list(APPEND __QtFeature_${type}_features "${alias_feature}")
 -            set(__QtFeature_${type}_features ${__QtFeature_${type}_features} PARENT_SCOPE)
--            break()
 +    if(arg_ALIAS_OF_FEATURE)
 +        # Register alias as a feature type similar to the true one
 +        foreach(type IN ITEMS public private internal)
 +            if(arg_ALIAS_OF_FEATURE IN_LIST __QtFeature_${type}_features)
 +                list(APPEND __QtFeature_${type}_features "${alias_feature}")
 +                set(__QtFeature_${type}_features ${__QtFeature_${type}_features} PARENT_SCOPE)
-+                break()
++
 +            endif()
 +        endforeach()
-+        set(_QT_FEATURE_ALIASES_${arg_ALIAS_OF_FEATURE} "${_QT_FEATURE_ALIASES_${arg_ALIAS_OF_FEATURE}}" PARENT_SCOPE)
++        set(_QT_FEATURE_ALIASES_${arg_ALIAS_OF_FEATURE}
++            "${_QT_FEATURE_ALIASES_${arg_ALIAS_OF_FEATURE}}" PARENT_SCOPE)
 +    else()
 +        # Otherwise use the same logic as qt_feature
 +        if (arg_PUBLIC)
@@ -525,56 +676,87 @@ index 89f83ff..9a73a05 100644
  endfunction()
  
  function(qt_evaluate_to_boolean expressionVar)
-@@ -388,7 +424,29 @@
-     set(${expression_dump} "${${expression_dump}}" PARENT_SCOPE)
+@@ -470,6 +507,34 @@
+     set("FEATURE_${feature}" ${expected_value} PARENT_SCOPE)
  endfunction()
  
++# Check that the alias value is consistent with its cache source
 +function(_qt_feature_check_cache_alias feature)
 +    _qt_internal_parse_feature_definition("${feature}")
 +    if(NOT arg_ALIAS_OF_CACHE)
-+        # Not an alias, skip this check
++        # Not an alias of a cache variable, skip this check
 +        return()
 +    endif()
 +    if(DEFINED "${arg_ALIAS_OF_CACHE}")
-+        # Emit an error if both the primary cache and the FEATURE variable is set
-+        if(DEFINED "FEATURE_${feature}")
++        # Check if the feature is set by another alias
++        unset(expected_value)
++        _qt_feature_evaluate_alias(expected_value "${feature}")
++        qt_set01(cache_sanitized ${arg_ALIAS_OF_CACHE})
++        if(NOT DEFINED expected_value)
++            # If nothing else set the alias value, use the primary cache value
++            set("FEATURE_${feature}" "${${arg_ALIAS_OF_CACHE}}" PARENT_SCOPE)
++            return()
++        endif()
++        # Otherwise, just check for consistency
++        if(NOT cache_sanitized EQUAL expected_value)
 +            string(CONCAT msg
-+                "FEATURE_${feature} is an alias of ${arg_ALIAS_OF_CACHE}, and the latter was"
-+                " already set. You may only use one of these variables."
++                "FEATURE_${feature}(${FEATURE_${feature}}) is an alias of ${not_kw} "
++                "${arg_ALIAS_OF_CACHE}(${${arg_ALIAS_OF_CACHE}}), and their values conflict."
 +            )
 +            qt_configure_add_report_error(${msg})
-+        else()
-+            # Otherwise make sure the FEATURE variable matches the cached
-+            set(FEATURE_${feature} "${${arg_ALIAS_IF_CACHE}}" PARENT_SCOPE)
 +        endif()
 +    endif()
 +endfunction()
 +
- function(_qt_feature_check_feature_alias feature)
+ # Make sure all the direct alias values are set after the final evaluation of the feature value.
+ # Must be run after `_qt_feature_check_feature_alias` which checks for user-defined values and
+ # any inconsistencies
+@@ -502,6 +567,7 @@
+ #
+ function(qt_feature_check_and_save_user_provided_value
+         resultVar feature condition condition_expression computed label)
 +    _qt_feature_check_cache_alias(${feature})
-     if(DEFINED "FEATURE_${feature}")
-         # The main feature was already defined, use the current value.
-         # Just check if any other ALIAS was defined and emit a warning
-@@ -561,7 +619,7 @@
+     _qt_feature_check_feature_alias(${feature})
+     if (DEFINED "FEATURE_${feature}")
+         # Revisit new user provided value
+@@ -605,7 +671,7 @@
  macro(_qt_internal_parse_feature_definition feature)
      cmake_parse_arguments(arg
-         "PRIVATE;PUBLIC;ALIAS_SAVE;ALIAS_NEGATE"
--        "LABEL;PURPOSE;SECTION;"
+         "PRIVATE;PUBLIC;ALIAS_NEGATE"
+-        "LABEL;PURPOSE;SECTION;ALIAS_OF"
 +        "LABEL;PURPOSE;SECTION;ALIAS_OF_FEATURE;ALIAS_OF_CACHE"
          "AUTODETECT;CONDITION;ENABLE;DISABLE;EMIT_IF"
          ${_QT_FEATURE_DEFINITION_${feature}})
  endmacro()
-From 5ddff0a35d957107b5ae47e6a1e8de126a9798e8 Mon Sep 17 00:00:00 2001
+@@ -692,12 +758,14 @@
+     endif()
+ 
+     set(actual_label "${arg_LABEL}")
+-    if(arg_ALIAS_OF)
++    if(arg_ALIAS_OF_FEATURE OR arg_ALIAS_OF_CACHE)
+         set(not_kw)
+         if(arg_ALIAS_NEGATE)
+             set(not_kw "NOT")
+         endif()
+-        string(APPEND actual_label " (alias of ${not_kw} ${arg_ALIAS_OF})")
++        # Only one of ALIAS_OF_FEATURE/ALIAS_OF_CACHE will be set, so we can just combine them
++        set(alias_source "${not_kw} ${arg_ALIAS_OF_FEATURE}${arg_ALIAS_OF_CACHE}")
++        string(APPEND actual_label " (alias of ${alias_source})")
+     endif()
+ 
+     # Warn about a feature which is not emitted, but the user explicitly provided a value for it.
+From 2d271835679d1833b3ddd64bb5941bde2c6ad650 Mon Sep 17 00:00:00 2001
 From: Cristian Le <cristian.le@qt.io>
 Date: Tue, 04 Feb 2025 16:59:55 +0100
 Subject: [PATCH] Make `FEATURE_static` and `FEATURE_shared` aliased features
 
 Fixes: QTBUG-133407
 Change-Id: Ic17315b0229a829689b77e272cd9bbd331c3b0d7
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
 ---
 
 diff --git a/configure.cmake b/configure.cmake
-index 12990f8..a3e3d6d 100644
+index 05c4bbd..1b34b9c 100644
 --- a/configure.cmake
 +++ b/configure.cmake
 @@ -519,15 +519,16 @@
@@ -594,7 +776,32 @@ index 12990f8..a3e3d6d 100644
 -    CONDITION NOT QT_FEATURE_shared
 +qt_feature_alias("static"
 +    ALIAS_OF_FEATURE "shared"
-+    NEGATE SAVE
++    NEGATE
  )
  qt_feature_config("static" QMAKE_PUBLIC_QT_CONFIG)
  qt_feature_config("static" QMAKE_PUBLIC_CONFIG)
+From 9d78275f229f4ed26817c549bf1d8ef73ce371e3 Mon Sep 17 00:00:00 2001
+From: Cristian Le <cristian.le@qt.io>
+Date: Tue, 18 Feb 2025 17:16:01 +0100
+Subject: [PATCH] Copy `qt_set01` to a central location
+
+Change-Id: I05b3ef4d02dd1f8583eea9960c3776409f2f3b2e
+Reviewed-by: Alexandru Croitor <alexandru.croitor@qt.io>
+---
+
+diff --git a/cmake/QtPublicCMakeHelpers.cmake b/cmake/QtPublicCMakeHelpers.cmake
+index 3ca38b6..29e4e2f 100644
+--- a/cmake/QtPublicCMakeHelpers.cmake
++++ b/cmake/QtPublicCMakeHelpers.cmake
+@@ -831,3 +831,11 @@
+     endif()
+     set(${out_var} "${${out_var}}" PARENT_SCOPE)
+ endfunction()
++
++function(qt_set01 result)
++    if (${ARGN})
++        set("${result}" 1 PARENT_SCOPE)
++    else()
++        set("${result}" 0 PARENT_SCOPE)
++    endif()
++endfunction()
