@@ -23,7 +23,7 @@ finish-args:
   - --device=dri
 
 modules:
-  - qt6-8.yaml
+  - qt6-9.yaml
   - "shared-modules/glu/glu-9.json"
   - name: sioyek
     buildsystem: simple
