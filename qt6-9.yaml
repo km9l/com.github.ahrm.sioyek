@@ -33,6 +33,7 @@ modules:
       - -DFEATURE_linuxfb=OFF
       - -DFEATURE_vnc=OFF
       - -DFEATURE_vkkhrdisplay=OFF
+      - -DFEATURE_glibc_fortify_source=OFF # this clashes with gcc's own _FORTIFY_SOURCE setting
     sources:
       - type: archive
         url: https://download.qt.io/official_releases/qt/6.9/6.9.0/submodules/qtbase-everywhere-src-6.9.0.tar.xz
