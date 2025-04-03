@@ -69,4 +69,5 @@ cleanup:
   - /lib/metatypes
   - /lib/systemd
   - /lib/plugins
+  - /lib/qml
   - /mkspecs
