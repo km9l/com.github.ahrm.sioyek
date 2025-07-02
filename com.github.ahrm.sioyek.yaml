@@ -23,7 +23,7 @@ finish-args:
   - --device=dri
 
 modules:
-  - qt6-9.yaml
+  - qt6.yaml
   - "shared-modules/glu/glu-9.json"
   - name: sioyek
     buildsystem: simple
@@ -39,7 +39,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/ahrm/sioyek.git
-        commit: 4ee8831dbe16848c78b3f50c8579dd40090966ab
+        commit: 5726ccd9d28327c462e4853822ef55ef486e1e4d
       - type: patch
         path: patch/sioyek_build_fix.patch
       - type: file
@@ -56,8 +56,6 @@ cleanup:
   - '*.la'
   - '*.a'
   - '*.prl'
-  - '*.so'
-  - '*.so.*'
   - /bin/a*
   - /bin/q*
   - /doc
@@ -68,6 +66,5 @@ cleanup:
   - /lib/objects-Release
   - /lib/metatypes
   - /lib/systemd
-  - /lib/plugins
   - /lib/qml
   - /mkspecs

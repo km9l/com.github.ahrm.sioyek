@@ -1,15 +1,5 @@
 --- a/pdf_viewer_build_config.pro
 +++ b/pdf_viewer_build_config.pro
-@@ -6,7 +6,8 @@
-               zlib
-           
- 
--QT += core opengl gui widgets network 3dinput quickwidgets svg texttospeech
-+QT += core opengl gui widgets network quickwidgets svg texttospeech waylandclient-private
-+QTPLUGIN += qwayland-generic qwayland-egl
- 
- greaterThan(QT_MAJOR_VERSION, 5){
- 	QT += openglwidgets
 @@ -17,7 +18,7 @@
  }
  

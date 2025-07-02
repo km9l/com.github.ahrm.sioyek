@@ -21,7 +21,6 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - -DINSTALL_ARCHDATADIR=lib
-      - -DBUILD_SHARED_LIBS=OFF
       - -DFEATURE_relocatable=OFF
       - -DFEATURE_rpath=OFF
       - -DFEATURE_precompile_header=OFF
@@ -48,9 +47,6 @@ modules:
       - type: patch
         paths:
           - patch/qtbase-find_package-paths.patch
-      - type: patch
-        paths:
-          - patch/qtbase-fix-static-build.patch
   - name: qt6-qtshadertools
     buildsystem: cmake-ninja
     sources:

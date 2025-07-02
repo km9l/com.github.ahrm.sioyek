@@ -49,11 +49,11 @@
   <update_contact>nbenitezl_AT_gmail.com</update_contact>
   <content_rating type="oars-1.1"/>
   <releases>
-    <release version="2.0.0.github250329" date="2025-03-29">
+    <release version="2.0.0.github250607" date="2025-06-07">
     <description>
-    <p>Flathub Beta release from Sioyek github code at 29-03-2025.</p>
+    <p>Flathub Beta release from Sioyek github code at 07-06-2025.</p>
     </description>
-    <url>https://github.com/ahrm/sioyek/commit/4ee8831dbe16848c78b3f50c8579dd40090966ab</url>
+    <url>https://github.com/ahrm/sioyek/commit/5726ccd9d28327c462e4853822ef55ef486e1e4d</url>
     </release>
     <release version="2.0.0.github241117" date="2024-11-17">
     <description>
