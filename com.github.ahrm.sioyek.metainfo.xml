@@ -112,7 +112,7 @@
     </release>
     <release version="1.4.0fl1" date="2022-07-11">
     <description>
-    Sioyek 1.4.0fl flathub maintance release:
+    <p>Sioyek 1.4.0fl flathub maintance release:</p>
     <ul>
       <li>Flathub packaging: Make Sioyek use Wayland backend when under Wayland, X11 otherwise</li>
       <li>Flathub packaging: Fix launching Sioyek from desktop "Open with.." dialog</li>
@@ -169,11 +169,11 @@
     <url>https://github.com/ahrm/sioyek/releases/tag/v1.3.0</url>
     </release>
     <release version="1.1.0.fl1" date="2022-03-14">
-    <description>Same 1.1.0 release but with updated dependencies (Qt 5.15 and Boost 1.78)</description>
+    <description><p>Same 1.1.0 release but with updated dependencies (Qt 5.15 and Boost 1.78)</p></description>
     <url>https://github.com/ahrm/sioyek/releases/tag/v1.1.0</url>
     </release>
     <release version="1.1.0" date="2022-02-18">
-    <description>1.1.0 release</description>
+    <description><p>1.1.0 release</p></description>
     <url>https://github.com/ahrm/sioyek/releases/tag/v1.1.0</url>
     </release>
   </releases>
