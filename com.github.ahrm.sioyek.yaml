@@ -2,7 +2,7 @@
 app-id: com.github.ahrm.sioyek
 
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 
 command: sioyek
@@ -39,7 +39,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/ahrm/sioyek.git
-        commit: 5726ccd9d28327c462e4853822ef55ef486e1e4d
+        commit: 02f47e758e813eaefe713bdbb0eaa22a9467373c
       - type: patch
         path: patch/sioyek_build_fix.patch
       - type: file
