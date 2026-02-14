@@ -4,18 +4,15 @@ config-opts:
   - -DFEATURE_wayland_server=OFF
 sources:
   - type: archive
-    url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtwayland-everywhere-src-6.9.2.tar.xz
-    sha256: cad79806565568f12f9983fed69219416abcee9d5deef4abdfcf94aa2eef7781
+    url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtwayland-everywhere-src-6.10.2.tar.xz
+    sha256: 391998eb432719df26a6a67d8efdc67f8bf2afdd76c1ee3381ebff4fe7527ee2
     x-checker-data:
       type: anitya
       project-id: 7927
       stable-only: true
       versions:
-        <: 6.10.0
-      url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtwayland-everywhere-src-$version.tar.xz
-  - type: patch
-    paths:
-      - patch/qtwayland-use-adwaita-decorations-on-gnome-by-default.patch
+        <: 6.11.0
+      url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtwayland-everywhere-src-$version.tar.xz
 modules:
   - name: qt6-qtbase
     buildsystem: cmake-ninja
@@ -31,82 +28,85 @@ modules:
       - -DFEATURE_glibc_fortify_source=OFF # this clashes with gcc's own _FORTIFY_SOURCE setting
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtbase-everywhere-src-6.9.2.tar.xz
-        sha256: 44be9c9ecfe04129c4dea0a7e1b36ad476c9cc07c292016ac98e7b41514f2440
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtbase-everywhere-src-6.10.2.tar.xz
+        sha256: aeb78d29291a2b5fd53cb55950f8f5065b4978c25fb1d77f627d695ab9adf21e
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtbase-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtbase-everywhere-src-$version.tar.xz
       - type: patch
         paths:
           - patch/qtbase-find_package-paths.patch
+      - type: patch
+        paths:
+          - patch/qtbase-use-adwaita-decorations-on-gnome-by-default.patch
   - name: qt6-qtshadertools
     buildsystem: cmake-ninja
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtshadertools-everywhere-src-6.9.2.tar.xz
-        sha256: 17678af9d9543224bbb932bf18d4fc05e180b2b3a3216241e557631bd6bf1495
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtshadertools-everywhere-src-6.10.2.tar.xz
+        sha256: 18d9dbbc4f7e6e96e6ed89a9965dc032e2b58158b65156c035537826216716c9
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtshadertools-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtshadertools-everywhere-src-$version.tar.xz
   - name: qt6-qtdeclarative
     buildsystem: cmake-ninja
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtdeclarative-everywhere-src-6.9.2.tar.xz
-        sha256: 477f2d2c0bd98916107818725e6d498206e033dfb2859c52121e01a06ac42664
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtdeclarative-everywhere-src-6.10.2.tar.xz
+        sha256: a249914ff66cdcdbf0df8b5ffad997a2ee6dce01cc17d43c6cc56fdc1d0f4b0f
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtdeclarative-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtdeclarative-everywhere-src-$version.tar.xz
   - name: qt6-qtsvg
     buildsystem: cmake-ninja
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtsvg-everywhere-src-6.9.2.tar.xz
-        sha256: d984cab8f26334aa1c15e5b8f0cd9f1b7c0c1289fe0b68c1c84ab469b75605a5
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtsvg-everywhere-src-6.10.2.tar.xz
+        sha256: f07ff80f38caf235187200345392ca7479445ddf49a36c3694cd52a735dad6e1
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtsvg-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtsvg-everywhere-src-$version.tar.xz
   - name: qt6-qtmultimedia
     buildsystem: cmake-ninja
     config-opts:
       - -DFEATURE_ffmpeg=OFF
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtmultimedia-everywhere-src-6.9.2.tar.xz
-        sha256: 7bf8a19a57a7432181b05d0e264acfd8ca4b75a3901d01a27a32935703e5ab12
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtmultimedia-everywhere-src-6.10.2.tar.xz
+        sha256: 93f7ef0106fbd731165a2723f3e436c911fc5e6880f5bc987b55516c20833e2b
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtmultimedia-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtmultimedia-everywhere-src-$version.tar.xz
   - name: qt6-qtspeech
     buildsystem: cmake-ninja
     sources:
       - type: archive
-        url: https://download.qt.io/official_releases/qt/6.9/6.9.2/submodules/qtspeech-everywhere-src-6.9.2.tar.xz
-        sha256: b2b667375111637e45517a6e63475987691b922a19900abc52996617a0a088b1
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtspeech-everywhere-src-6.10.2.tar.xz
+        sha256: d937f6c715792b0d8f036e94513ebfc8def6b988a65f3ff30a7f4a8cc1263014
         x-checker-data:
           type: anitya
           project-id: 7927
           stable-only: true
           versions:
-            <: 6.10.0
-          url-template: https://download.qt.io/official_releases/qt/6.9/$version/submodules/qtspeech-everywhere-src-$version.tar.xz
+            <: 6.11.0
+          url-template: https://download.qt.io/official_releases/qt/6.10/$version/submodules/qtspeech-everywhere-src-$version.tar.xz
